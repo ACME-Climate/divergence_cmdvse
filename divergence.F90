@@ -19,13 +19,13 @@ module divergence
   
   integer, parameter, public :: np = 4
 
-  type, public :: element_t
+  type, bind(c), public :: element_t
      real (kind=c_double) :: metdet(np,np)
-     real (kind=c_double) :: Dinv(np,np,2,2)
+     real (kind=c_double) :: Dinv(2,2,np,np)
      real (kind=c_double) :: rmetdet(np,np)
   end type element_t
 
-  type, public :: derivative_t
+  type, bind(c), public :: derivative_t
      real (kind=c_double) :: Dvv(np,np)
   end type derivative_t
 
@@ -37,7 +37,7 @@ contains
     !   input:  v = velocity in lat-lon coordinates
     !   ouput:  div(v)  spherical divergence of v
     !
-    real(kind=c_double), intent(in) :: v(np,np,2)  ! in lat-lon coordinates
+    real(kind=c_double), intent(in) :: v(2,np,np)  ! in lat-lon coordinates
     type (derivative_t), intent(in) :: deriv
     type (element_t), intent(in) :: elem
     real(kind=c_double), intent(out) :: div(np,np)
@@ -54,8 +54,8 @@ contains
     ! convert to contra variant form and multiply by g
     do j=1,np
        do i=1,np
-          gv(i,j,1)=elem%metdet(i,j)*(elem%Dinv(i,j,1,1)*v(i,j,1) + elem%Dinv(i,j,1,2)*v(i,j,2))
-          gv(i,j,2)=elem%metdet(i,j)*(elem%Dinv(i,j,2,1)*v(i,j,1) + elem%Dinv(i,j,2,2)*v(i,j,2))
+          gv(i,j,1)=elem%metdet(i,j)*(elem%Dinv(1,1,i,j)*v(1,i,j) + elem%Dinv(2,1,i,j)*v(2,i,j))
+          gv(i,j,2)=elem%metdet(i,j)*(elem%Dinv(1,2,i,j)*v(1,i,j) + elem%Dinv(2,2,i,j)*v(2,i,j))
        enddo
     enddo
 
