@@ -18,16 +18,18 @@ struct derivative {
 };
 
 extern "C" {
-void divergence_sphere_fortran(
-    const double (*)[4][2], const derivative<4, double> &,
-    const element<4, double> &, double[4][4]);
+using real = double;
+void divergence_sphere_fortran(const real (*)[4][2],
+                               const derivative<4, real> &,
+                               const element<4, real> &,
+                               real[4][4]);
 }
 
 template <int np, typename real>
-void divergence_sphere(const real v[np][np][2],
-                       const derivative<np, real> &deriv,
-                       const element<np, real> &elem,
-                       real div[np][np]) {
+__attribute__((noinline)) void divergence_sphere(
+    const real v[np][np][2],
+    const derivative<np, real> &deriv,
+    const element<np, real> &elem, real div[np][np]) {
   /* Convert to contra variant form and multiply by g */
   real gv[np][np][2];
   for(int i = 0; i < np; i++) {
@@ -130,21 +132,24 @@ int main(int argc, char **argv) {
       delete input;
     }
   }
-  
+
   constexpr const int numtests = 1e5;
   Timer::Timer time_c;
-  /* Initial run to prevent cache timing from affecting us */
+  /* Initial run to prevent cache timing from affecting us
+   */
   real divergence_c[NP][NP];
   for(int i = 0; i < numtests; i++) {
-    divergence_sphere<NP, real>(v, deriv, elem, divergence_c);
+    divergence_sphere<NP, real>(v, deriv, elem,
+                                divergence_c);
   }
-  
+
   time_c.startTimer();
   for(int i = 0; i < numtests; i++) {
-    divergence_sphere<NP, real>(v, deriv, elem, divergence_c);
+    divergence_sphere<NP, real>(v, deriv, elem,
+                                divergence_c);
   }
   time_c.stopTimer();
-  
+
   Timer::Timer time_f;
   real divergence_f[NP][NP];
   for(int i = 0; i < numtests; i++) {
@@ -179,6 +184,6 @@ int main(int argc, char **argv) {
   }
 
   std::cout << "C++ Time:\n" << time_c
-	    << "\n\nFortran Time:\n" << time_f << "\n";
+            << "\n\nFortran Time:\n" << time_f << "\n";
   return 0;
 }
