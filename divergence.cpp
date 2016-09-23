@@ -3,6 +3,8 @@
 #include <fstream>
 #include <sys/time.h>
 
+#include "timer/timer.hpp"
+
 template <int np, typename real>
 struct element {
   real metdet[np][np];
@@ -41,7 +43,6 @@ void divergence_sphere(const real v[np][np][2],
 
   /* Compute d/dx and d/dy */
   real vvtemp[np][np];
-#pragma omp parallel for
   for(int i = 0; i < np; i++) {
     for(int j = 0; j < np; j++) {
       real dudx00 = 0.0;
@@ -55,7 +56,6 @@ void divergence_sphere(const real v[np][np][2],
     }
   }
   constexpr const real rrearth = 1.5683814303638645E-7;
-#pragma omp parallel for
   for(int i = 0; i < np; i++) {
     for(int j = 0; j < np; j++) {
       div[i][j] = (div[i][j] + vvtemp[i][j]) *
@@ -130,54 +130,31 @@ int main(int argc, char **argv) {
       delete input;
     }
   }
-  constexpr const char *dimname[] = {"U", "V"};
-  std::cout.precision(20);
-  for(int dim = 0; dim < DIMS; dim++) {
-    std::cout << dimname[dim] << "\n";
-    for(int i = 0; i < NP; i++) {
-      for(int j = 0; j < NP; j++) {
-        std::cout << "   " << v[i][j][dim] << "\n";
-      }
-      std::cout << "\n";
-    }
-  }
-  std::cout << "elem.metdet\n";
-  for(int i = 0; i < NP; i++) {
-    for(int j = 0; j < NP; j++) {
-      std::cout << elem.metdet[i][j] << "\n";
-    }
-    std::cout << "\n";
-  }
-  std::cout << "elem.rmetdet\n";
-  for(int i = 0; i < NP; i++) {
-    for(int j = 0; j < NP; j++) {
-      std::cout << elem.rmetdet[i][j] << "\n";
-    }
-    std::cout << "\n";
-  }
-  for(int i = 0; i < DIMS; i++) {
-    for(int j = 0; j < DIMS; j++) {
-      std::cout << "elem.Dinv (" << i << ", " << j << ")\n";
-      for(int k = 0; k < NP; k++) {
-        for(int l = 0; l < NP; l++) {
-          std::cout << elem.Dinv[k][l][i][j] << "\n";
-        }
-        std::cout << "\n";
-      }
-    }
-  }
-  std::cout << "deriv.Dvv\n";
-  for(int i = 0; i < NP; i++) {
-    for(int j = 0; j < NP; j++) {
-      std::cout << deriv.Dvv[i][j] << "\n";
-    }
-    std::cout << "\n";
-  }
-
+  
+  constexpr const int numtests = 1e5;
+  Timer::Timer time_c;
+  /* Initial run to prevent cache timing from affecting us */
   real divergence_c[NP][NP];
-  divergence_sphere<NP, real>(v, deriv, elem, divergence_c);
+  for(int i = 0; i < numtests; i++) {
+    divergence_sphere<NP, real>(v, deriv, elem, divergence_c);
+  }
+  
+  time_c.startTimer();
+  for(int i = 0; i < numtests; i++) {
+    divergence_sphere<NP, real>(v, deriv, elem, divergence_c);
+  }
+  time_c.stopTimer();
+  
+  Timer::Timer time_f;
   real divergence_f[NP][NP];
-  divergence_sphere_fortran(v, deriv, elem, divergence_f);
+  for(int i = 0; i < numtests; i++) {
+    divergence_sphere_fortran(v, deriv, elem, divergence_f);
+  }
+  time_f.startTimer();
+  for(int i = 0; i < numtests; i++) {
+    divergence_sphere_fortran(v, deriv, elem, divergence_f);
+  }
+  time_f.stopTimer();
   constexpr const real divergence_e[NP][NP] = {
       {0.14383368343270220, 0.16634973900122296,
        0.21556384471655873, 0.29459485031864308},
@@ -190,7 +167,7 @@ int main(int argc, char **argv) {
 
       {0.14264597462181144, 0.17154723246534875,
        0.22337488503182140, 0.30152141985185271}};
-  std::cout << "Divergence\n";
+  std::cout << "Divergence Errors\n";
   for(int i = 0; i < NP; i++) {
     for(int j = 0; j < NP; j++) {
       std::cout << divergence_c[i][j] - divergence_e[i][j]
@@ -200,5 +177,8 @@ int main(int argc, char **argv) {
     }
     std::cout << "\n";
   }
+
+  std::cout << "C++ Time:\n" << time_c
+	    << "\n\nFortran Time:\n" << time_f << "\n";
   return 0;
 }
