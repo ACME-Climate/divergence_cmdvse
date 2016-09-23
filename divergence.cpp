@@ -26,6 +26,7 @@ void divergence_sphere(const real v[np][np][2],
                        const derivative<np, real> &deriv,
                        const element<np, real> &elem,
                        real div[np][np]) {
+  /* Convert to contra variant form and multiply by g */
   real gv[np][np][2];
   for(int i = 0; i < np; i++) {
     for(int j = 0; j < np; j++) {
@@ -37,6 +38,8 @@ void divergence_sphere(const real v[np][np][2],
                      elem.Dinv[i][j][1][1] * v[i][j][1]);
     }
   }
+
+  /* Compute d/dx and d/dy */
   real vvtemp[np][np];
 #pragma omp parallel for
   for(int i = 0; i < np; i++) {
@@ -44,14 +47,15 @@ void divergence_sphere(const real v[np][np][2],
       real dudx00 = 0.0;
       real dvdy00 = 0.0;
       for(int k = 0; k < np; k++) {
-        dudx00 += deriv.Dvv[j][k] * gv[i][j][0];
-        dvdy00 += deriv.Dvv[j][k] * gv[i][j][1];
+        dudx00 += deriv.Dvv[j][k] * gv[i][k][0];
+        dvdy00 += deriv.Dvv[j][k] * gv[k][i][1];
       }
       div[i][j] = dudx00;
-      vvtemp[i][j] = dvdy00;
+      vvtemp[j][i] = dvdy00;
     }
   }
   constexpr const real rrearth = 1.5683814303638645E-7;
+#pragma omp parallel for
   for(int i = 0; i < np; i++) {
     for(int j = 0; j < np; j++) {
       div[i][j] = (div[i][j] + vvtemp[i][j]) *
