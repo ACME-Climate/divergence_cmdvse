@@ -29,7 +29,7 @@ module divergence
      real (kind=c_double) :: Dvv(np,np)
   end type derivative_t
 
-  real (kind=c_double), parameter, private :: rrearth = 1.5683814303638645E-7
+  real (kind=c_double), parameter, private :: rrearth = 1.5683814303638645D-7
 
 contains
   subroutine divergence_sphere_fortran(v,deriv,elem,div) bind(c)
