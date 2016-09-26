@@ -83,11 +83,7 @@ void readElement(element<np, real> &elem,
   for(int i = 0; i < np; i++) {
     for(int j = 0; j < np; j++) {
       (*input) >> elem.metdet[i][j];
-    }
-  }
-  for(int i = 0; i < np; i++) {
-    for(int j = 0; j < np; j++) {
-      (*input) >> elem.rmetdet[j][i];
+      elem.rmetdet[i][j] = 1 / elem.metdet[i][j];
     }
   }
   for(int i = 0; i < 2; i++) {
@@ -111,47 +107,43 @@ void readDerivative(derivative<np, real> &deriv,
   }
 }
 
-int main(int argc, char **argv) {
-  using real = double;
-  constexpr const int DIMS = 2;
-  constexpr const int NP = 4;
-  double v[NP][NP][DIMS];
-  struct element<NP, real> elem;
-  struct derivative<NP, real> deriv;
-  {
-    std::istream *input;
-    if(argc > 1) {
-      input = new std::ifstream(argv[1]);
-    } else {
-      input = &std::cin;
-    }
-    readVelocity(v, input);
-    readElement(elem, input);
-    readDerivative(deriv, input);
-    if(argc > 1) {
-      delete input;
+template <int np, typename real>
+void readDivergence(real divergence[np][np],
+                    std::istream *input) {
+  for(int i = 0; i < np; i++) {
+    for(int j = 0; j < np; j++) {
+      (*input) >> divergence[i][j];
     }
   }
+}
 
-  constexpr const int numtests = 1e5;
+constexpr const int DIMS = 2;
+
+template <int np, typename real>
+void compareDivergences(const real v[np][np][DIMS],
+			const element<np, real> &elem,
+			const derivative<np, real> &deriv,
+			const real divergence_e[np][np],
+			const int numtests) {
+  
   Timer::Timer time_c;
   /* Initial run to prevent cache timing from affecting us
    */
-  real divergence_c[NP][NP];
+  real divergence_c[np][np];
   for(int i = 0; i < numtests; i++) {
-    divergence_sphere<NP, real>(v, deriv, elem,
+    divergence_sphere<np, real>(v, deriv, elem,
                                 divergence_c);
   }
 
   time_c.startTimer();
   for(int i = 0; i < numtests; i++) {
-    divergence_sphere<NP, real>(v, deriv, elem,
+    divergence_sphere<np, real>(v, deriv, elem,
                                 divergence_c);
   }
   time_c.stopTimer();
 
   Timer::Timer time_f;
-  real divergence_f[NP][NP];
+  real divergence_f[np][np];
   for(int i = 0; i < numtests; i++) {
     divergence_sphere_fortran(v, deriv, elem, divergence_f);
   }
@@ -160,21 +152,9 @@ int main(int argc, char **argv) {
     divergence_sphere_fortran(v, deriv, elem, divergence_f);
   }
   time_f.stopTimer();
-  constexpr const real divergence_e[NP][NP] = {
-      {0.14383368343270220, 0.16634973900122296,
-       0.21556384471655873, 0.29459485031864308},
-
-      {0.10495094678642192, 0.10563956451788356,
-       0.13337591314546268, 0.18918612996975015},
-
-      {0.10396974364110805, 0.10785355163561680,
-       0.13773336288220531, 0.19410009772740583},
-
-      {0.14264597462181144, 0.17154723246534875,
-       0.22337488503182140, 0.30152141985185271}};
   std::cout << "Divergence Errors\n";
-  for(int i = 0; i < NP; i++) {
-    for(int j = 0; j < NP; j++) {
+  for(int i = 0; i < np; i++) {
+    for(int j = 0; j < np; j++) {
       std::cout << divergence_c[i][j] - divergence_e[i][j]
                 << "    "
                 << divergence_f[i][j] - divergence_e[i][j]
@@ -185,5 +165,35 @@ int main(int argc, char **argv) {
 
   std::cout << "C++ Time:\n" << time_c
             << "\n\nFortran Time:\n" << time_f << "\n";
+}
+
+int main(int argc, char **argv) {
+  using real = double;
+  constexpr const int NP = 4;
+  real v[NP][NP][DIMS];
+  element<NP, real> elem;
+  derivative<NP, real> deriv;
+  real divergence_e[NP][NP];
+  {
+    std::istream *input;
+    if(argc > 1) {
+      input = new std::ifstream(argv[1]);
+    } else {
+      input = &std::cin;
+    }
+    readVelocity(v, input);
+    readElement(elem, input);
+    readDerivative(deriv, input);
+    readDivergence(divergence_e, input);
+    if(argc > 1) {
+      delete input;
+    }
+  }
+
+  constexpr const int defNumTests = 1e5;
+  const int numtests =
+      (argc > 2) ? std::stoi(argv[2]) : defNumTests;
+  compareDivergences(v, elem, deriv,
+		     divergence_e, numtests);
   return 0;
 }

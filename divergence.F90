@@ -31,6 +31,16 @@ module divergence
 
   real (kind=c_double), parameter, private :: rrearth = 1.5683814303638645D-7
 
+  interface
+     integer (c_int) function puts(s) bind(c)
+       ! For Debugging: Use as follows:
+       ! character (len=*), parameter :: strout="Printing from Fortran"
+       ! i=puts(strout)
+       use iso_c_binding
+       character :: s(*)
+     end function puts
+  end interface
+
 contains
   subroutine divergence_sphere_fortran(v,deriv,elem,div) bind(c)
     !
@@ -50,6 +60,7 @@ contains
     real(kind=c_double) ::  dudx00
     real(kind=c_double) ::  dvdy00
     real(kind=c_double) ::  gv(np,np,2),vvtemp(np,np)
+
 
     ! convert to contra variant form and multiply by g
     do j=1,np
