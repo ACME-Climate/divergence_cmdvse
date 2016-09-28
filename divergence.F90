@@ -6,8 +6,8 @@
 !     real_kind (np, np, 2, 2)
 !   rmetdet
 !     real_kind (np, np)
-    
-  
+
+
 ! deriv
 !   Dvv
 !     real_kind (np, np)
@@ -16,7 +16,7 @@ module divergence
 
   use iso_c_binding
   implicit none
-  
+
   integer, parameter, public :: np = 4
 
   type, bind(c), public :: element_t
@@ -32,13 +32,13 @@ module divergence
   real (kind=c_double), parameter, private :: rrearth = 1.5683814303638645D-7
 
   interface
-     integer (c_int) function puts(s) bind(c)
+     subroutine puts(s) bind(c)
        ! For Debugging: Use as follows:
        ! character (len=*), parameter :: strout="Printing from Fortran"
-       ! i=puts(strout)
+       ! call puts(strout)
        use iso_c_binding
        character :: s(*)
-     end function puts
+     end subroutine puts
   end interface
 
 contains
@@ -61,7 +61,6 @@ contains
     real(kind=c_double) ::  dvdy00
     real(kind=c_double) ::  gv(np,np,2),vvtemp(np,np)
 
-
     ! convert to contra variant form and multiply by g
     do j=1,np
        do i=1,np
@@ -70,7 +69,7 @@ contains
        enddo
     enddo
 
-    ! compute d/dx and d/dy         
+    ! compute d/dx and d/dy
     do j=1,np
        do l=1,np
           dudx00=0.0d0

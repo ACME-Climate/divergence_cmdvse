@@ -4,67 +4,7 @@
 #include <sys/time.h>
 
 #include "timer/timer.hpp"
-
-template <int np, typename real>
-struct element {
-  real metdet[np][np];
-  real Dinv[np][np][2][2];
-  real rmetdet[np][np];
-};
-
-template <int np, typename real>
-struct derivative {
-  real Dvv[np][np];
-};
-
-extern "C" {
-using real = double;
-void divergence_sphere_fortran(const real (*)[4][2],
-                               const derivative<4, real> &,
-                               const element<4, real> &,
-                               real[4][4]);
-}
-
-template <int np, typename real>
-__attribute__((noinline)) void divergence_sphere(
-    const real v[np][np][2],
-    const derivative<np, real> &deriv,
-    const element<np, real> &elem, real div[np][np]) {
-  /* Convert to contra variant form and multiply by g */
-  real gv[np][np][2];
-  for(int i = 0; i < np; i++) {
-    for(int j = 0; j < np; j++) {
-      gv[i][j][0] = elem.metdet[i][j] *
-                    (elem.Dinv[i][j][0][0] * v[i][j][0] +
-                     elem.Dinv[i][j][0][1] * v[i][j][1]);
-      gv[i][j][1] = elem.metdet[i][j] *
-                    (elem.Dinv[i][j][1][0] * v[i][j][0] +
-                     elem.Dinv[i][j][1][1] * v[i][j][1]);
-    }
-  }
-
-  /* Compute d/dx and d/dy */
-  real vvtemp[np][np];
-  for(int i = 0; i < np; i++) {
-    for(int j = 0; j < np; j++) {
-      real dudx00 = 0.0;
-      real dvdy00 = 0.0;
-      for(int k = 0; k < np; k++) {
-        dudx00 += deriv.Dvv[j][k] * gv[i][k][0];
-        dvdy00 += deriv.Dvv[j][k] * gv[k][i][1];
-      }
-      div[i][j] = dudx00;
-      vvtemp[j][i] = dvdy00;
-    }
-  }
-  constexpr const real rrearth = 1.5683814303638645E-7;
-  for(int i = 0; i < np; i++) {
-    for(int j = 0; j < np; j++) {
-      div[i][j] = (div[i][j] + vvtemp[i][j]) *
-                  (elem.rmetdet[i][j] * rrearth);
-    }
-  }
-}
+#include "divergence.hpp"
 
 template <int np, typename real>
 void readVelocity(real v[np][np][2], std::istream *input) {
@@ -121,11 +61,10 @@ constexpr const int DIMS = 2;
 
 template <int np, typename real>
 void compareDivergences(const real v[np][np][DIMS],
-			const element<np, real> &elem,
-			const derivative<np, real> &deriv,
-			const real divergence_e[np][np],
-			const int numtests) {
-  
+                        const element<np, real> &elem,
+                        const derivative<np, real> &deriv,
+                        const real divergence_e[np][np],
+                        const int numtests) {
   Timer::Timer time_c;
   /* Initial run to prevent cache timing from affecting us
    */
@@ -193,7 +132,7 @@ int main(int argc, char **argv) {
   constexpr const int defNumTests = 1e5;
   const int numtests =
       (argc > 2) ? std::stoi(argv[2]) : defNumTests;
-  compareDivergences(v, elem, deriv,
-		     divergence_e, numtests);
+  compareDivergences(v, elem, deriv, divergence_e,
+                     numtests);
   return 0;
 }
