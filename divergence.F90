@@ -60,18 +60,20 @@ contains
     real(kind=c_double) ::  dudx00
     real(kind=c_double) ::  dvdy00
     real(kind=c_double) ::  gv(np,np,2),vvtemp(np,np)
-
+#if 1
     ! convert to contra variant form and multiply by g
     do j=1,np
        do i=1,np
-          gv(i,j,1)=elem%metdet(i,j)*(elem%Dinv(1,1,i,j)*v(1,i,j) + elem%Dinv(2,1,i,j)*v(2,i,j))
-          gv(i,j,2)=elem%metdet(i,j)*(elem%Dinv(1,2,i,j)*v(1,i,j) + elem%Dinv(2,2,i,j)*v(2,i,j))
+          do l=1,2
+             gv(i,j,l)=elem%metdet(i,j)*(elem%Dinv(1,l,i,j)*v(1,i,j) + elem%Dinv(2,l,i,j)*v(2,i,j))
+          enddo
        enddo
     enddo
-
+#endif
     ! compute d/dx and d/dy
-    do j=1,np
-       do l=1,np
+#if 1
+    do l=1,np
+       do j=1,np
           dudx00=0.0d0
           dvdy00=0.0d0
           !DIR$ UNROLL(NP)
@@ -83,8 +85,10 @@ contains
           vvtemp(j  ,l  ) = dvdy00
        end do
     end do
-
+#endif
+#if 1
     div(:,:)=(div(:,:)+vvtemp(:,:))*(elem%rmetdet(:,:)*rrearth)
+#endif
   end subroutine divergence_sphere_fortran
 
 end module divergence

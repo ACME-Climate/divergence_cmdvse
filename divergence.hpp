@@ -24,35 +24,50 @@
   __attribute__((aligned(boundary))) vardec
 #endif
 
+constexpr const int dim = 2;
+
+template <int np, typename real>
+using real_vector = real[np][np][dim];
+
+template <int np, typename real>
+using real_scalar = real[np][np];
+
 template <int np, typename real>
 struct element {
-  real metdet[np][np];
+  real_scalar<np, real> metdet;
   real Dinv[np][np][2][2];
-  real rmetdet[np][np];
+  real_scalar<np, real> rmetdet;
 };
 
 template <int np, typename real>
 struct derivative {
-  real Dvv[np][np];
+  real_scalar<np, real> Dvv;
 };
-
-constexpr const int dim = 2;
 
 extern "C" {
 using real = double;
-void divergence_sphere_fortran(const real (*)[4][2],
-                               const derivative<4, real> &,
-                               const element<4, real> &,
-                               real[4][4]);
+void divergence_sphere_fortran(
+    const restrict real_vector<4, real>,
+    const derivative<4, real> &restrict,
+    const element<4, real> &restrict,
+    restrict real_scalar<4, real>);
 }
 
 template <int np, typename real>
 __attribute__((noinline)) void divergence_sphere(
-    const real v[np][np][dim],
-    const derivative<np, real> &deriv,
-    const element<np, real> &elem, real div[np][np]) {
+    const restrict real_vector<np, real> v,
+    const derivative<np, real> &restrict deriv,
+    const element<np, real> &restrict elem,
+    restrict real_scalar<np, real> div) {
+  /* Computes the spherical divergence of v based on the
+   * provided metric terms in elem and deriv
+   * Returns the divergence in div
+   */
+  using rs = real_scalar<np, real>;
+  using rv = real_vector<np, real>;
   /* Convert to contra variant form and multiply by g */
-  ALIGNTO(real gv[np][np][dim], 16);
+  ALIGNTO(restrict rv gv, 16);
+  #if 1
   for(int j = 0; j < np; j++) {
     for(int i = 0; i < np; i++) {
       for(int k = 0; k < dim; k++) {
@@ -62,31 +77,33 @@ __attribute__((noinline)) void divergence_sphere(
       }
     }
   }
+  #endif
   /* Compute d/dx and d/dy */
-  ALIGNTO(real vvtemp[np][np], 16);
-  NOVECDEP
-  for(int j = 0; j < np; j++) {
-    NOVECDEP
-    for(int l = 0; l < np; l++) {
-      real dudx00 = 0.0;
-      real dvdy00 = 0.0;
-      NOVECDEP
+  ALIGNTO(restrict rs vvtemp, 16);
+  #if 1
+  for(int l = 0; l < np; l++) {
+    for(int j = 0; j < np; j++) {
+      ALIGNTO(real dudx00, 16) = 0.0;
+      ALIGNTO(real dvdy00, 16) = 0.0;
       for(int i = 0; i < np; i++) {
-        dudx00 += deriv.Dvv[l][i] * gv[j][i][0];
+        dudx00 = dudx00 + deriv.Dvv[l][i] * gv[j][i][0];
         dvdy00 += deriv.Dvv[l][i] * gv[i][j][1];
       }
       div[j][l] = dudx00;
       vvtemp[l][j] = dvdy00;
     }
   }
+  #endif
   constexpr const real rrearth = 1.5683814303638645E-7;
 
+  #if 1
   for(int i = 0; i < np; i++) {
     for(int j = 0; j < np; j++) {
       div[i][j] = (div[i][j] + vvtemp[i][j]) *
                   (elem.rmetdet[i][j] * rrearth);
     }
   }
+  #endif
 }
 
 #endif
