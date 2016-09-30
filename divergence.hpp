@@ -86,71 +86,57 @@ __attribute__((noinline)) void divergence_sphere(
   RESTRICT rfs &divflat = *reinterpret_cast<rfs *>(&div);
   #if 1
   std::cout.precision(17);
-  std::cout << "\n\nvflat:\n";
-  for(int j = 0; j < np * np * dim; j++) {
-    std::cout << vflat[j] << "     ";
-  }
   std::cout << "\n\nv:\n";
   for(int i = 0; i < dim; i++) {
     for(int j = 0; j < np; j++) {
       for(int k = 0; k < np; k++) {
 	std::cout << v[i][j][k] << "     ";
       }
+      std::cout << "\n";
     }
+    std::cout << "\n";
   }
-  std::cout << "\n\n";
 
-  std::cout << "\n\nDvvflat:\n";
-  for(int j = 0; j < np * np; j++) {
-    std::cout << Dvv[j] << "     ";
-  }
   std::cout << "\n\nDvv:\n";
   for(int j = 0; j < np; j++) {
     for(int k = 0; k < np; k++) {
       std::cout << deriv.Dvv[j][k] << "     ";
     }
+    std::cout << "\n";
   }
-  std::cout << "\n\n";
 
-  std::cout << "\n\nmetdetflat:\n";
-  for(int j = 0; j < np * np; j++) {
-    std::cout << metdet[j] << "     ";
-  }
   std::cout << "\n\nmetdet:\n";
   for(int j = 0; j < np; j++) {
     for(int k = 0; k < np; k++) {
       std::cout << elem.metdet[j][k] << "     ";
     }
+    std::cout << "\n";
   }
-  std::cout << "\n\n";
 
-  std::cout << "\n\nDinvflat:\n";
-  for(int j = 0; j < np * np * dim * dim; j++) {
-    std::cout << Dinv[j] << "     ";
+  std::cout << "\n\nDinvFlat:\n";
+  for(int i = 0; i < np * np * dim * dim; i++) {
+    std::cout << Dinv[i] << "   ";
   }
   std::cout << "\n\nDinv:\n";
-  for(int j = 0; j < np; j++) {
-    for(int k = 0; k < np; k++) {
-      for(int l = 0; l < dim; l++) {
-	for(int m = 0; m < dim; m++) {
+  for(int j = 0; j < dim; j++) {
+    for(int k = 0; k < dim; k++) {
+      for(int l = 0; l < np; l++) {
+	for(int m = 0; m < np; m++) {
 	  std::cout << elem.Dinv[j][k][l][m] << "     ";
 	}
+	std::cout << "\n";
       }
+      std::cout << "\n";
     }
+    std::cout << "\n";
   }
-  std::cout << "\n\n";
-  #endif
-
-  #if 1
-  std::cout << "\n\nrmetdetflat:\n";
-  for(int j = 0; j < np * np; j++) {
-    std::cout << rmetdet[j] << "     ";
-  }
-  std::cout << "\n\nrmetdet:\n";
+  
+  std::cout << "rmetdet:\n";
   for(int j = 0; j < np; j++) {
     for(int k = 0; k < np; k++) {
       std::cout << elem.rmetdet[j][k] << "     ";
     }
+    std::cout << "\n";
   }
   std::cout << "\n\n";
   #endif

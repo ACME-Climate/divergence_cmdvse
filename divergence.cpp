@@ -30,7 +30,7 @@ void readElement(element<np, real> &elem,
     for(int j = 0; j < 2; j++) {
       for(int k = 0; k < np; k++) {
         for(int l = 0; l < np; l++) {
-          (*input) >> elem.Dinv[i][j][l][k];
+          (*input) >> elem.Dinv[j][i][l][k];
         }
       }
     }
