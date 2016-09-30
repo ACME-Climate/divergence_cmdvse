@@ -60,8 +60,17 @@ contains
     real(kind=c_double) ::  dudx00
     real(kind=c_double) ::  dvdy00
     real(kind=c_double) ::  gv(np,np,2),vvtemp(np,np)
-#if 1
+
     ! convert to contra variant form and multiply by g
+#if 0
+    ! Original Fortran
+    do j=1,np
+       do i=1,np
+          gv(i,j,1)=elem%metdet(i,j)*(elem%Dinv(i,j,1,1)*v(i,j,1) + elem%Dinv(i,j,1,2)*v(i,j,2))
+          gv(i,j,2)=elem%metdet(i,j)*(elem%Dinv(i,j,2,1)*v(i,j,1) + elem%Dinv(i,j,2,2)*v(i,j,2))
+       enddo
+    enddo
+#else
     do j=1,np
        do i=1,np
           do l=1,2
@@ -71,7 +80,22 @@ contains
     enddo
 #endif
     ! compute d/dx and d/dy
-#if 1
+#if 0
+    ! Original Fortran
+    do j=1,np
+       do l=1,np
+          dudx00=0.0d0
+          dvdy00=0.0d0
+!DIR$ UNROLL(NP)
+          do i=1,np
+             dudx00 = dudx00 + deriv%Dvv(i,l  )*gv(i,j  ,1)
+             dvdy00 = dvdy00 + deriv%Dvv(i,l  )*gv(j  ,i,2)
+          end do
+          div(l  ,j  ) = dudx00
+          vvtemp(j  ,l  ) = dvdy00
+       end do
+    end do
+#else
     do l=1,np
        do j=1,np
           dudx00=0.0d0
