@@ -1,13 +1,14 @@
 
-#include <iostream>
-#include <fstream>
 #include <sys/time.h>
+#include <fstream>
+#include <iostream>
 
-#include "timer/timer.hpp"
 #include "divergence.hpp"
+#include "timer/timer.hpp"
 
 template <int np, typename real>
-void readVelocity(real_vector<np, real> &v, std::istream *input) {
+void readVelocity(real_vector<np, real> &v,
+                  std::istream *input) {
   for(int i = 0; i < 2; i++) {
     for(int j = 0; j < np; j++) {
       for(int k = 0; k < np; k++) {
@@ -60,11 +61,12 @@ void readDivergence(real_scalar<np, real> &divergence,
 constexpr const int DIMS = 2;
 
 template <int np, typename real>
-void compareDivergences(const real_vector<np, real> &v,
-                        const element<np, real> &elem,
-                        const derivative<np, real> &deriv,
-                        const real_scalar<np, real> &divergence_e,
-                        const int numtests) {
+void compareDivergences(
+    const real_vector<np, real> &v,
+    const element<np, real> &elem,
+    const derivative<np, real> &deriv,
+    const real_scalar<np, real> &divergence_e,
+    const int numtests) {
   Timer::Timer time_c;
   /* Initial run to prevent cache timing from affecting us
    */
@@ -102,8 +104,9 @@ void compareDivergences(const real_vector<np, real> &v,
     std::cout << "\n";
   }
 
-  std::cout << "C++ Time:\n" << time_c
-            << "\n\nFortran Time:\n" << time_f << "\n";
+  std::cout << "C++ Time:\n"
+            << time_c << "\n\nFortran Time:\n"
+            << time_f << "\n";
 }
 
 int main(int argc, char **argv) {
@@ -133,6 +136,6 @@ int main(int argc, char **argv) {
   const int numtests =
       (argc > 2) ? std::stoi(argv[2]) : defNumTests;
   compareDivergences<NP, real>(v, elem, deriv, divergence_e,
-															 numtests);
+                               numtests);
   return 0;
 }
