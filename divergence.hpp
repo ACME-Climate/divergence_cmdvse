@@ -75,6 +75,50 @@ __attribute__((noinline)) void divergence_sphere(
     const derivative<np, real> &RESTRICT deriv,
     const element<np, real> &RESTRICT elem,
     RESTRICT real_scalar<np, real> &div) {
+  #if 1
+  std::cout.precision(17);
+	std::cout.width(20);
+  std::cout << "\nv:\n";
+  for(int i = 0; i < np; i++) {
+    for(int j = 0; j < np; j++) {
+      for(int k = 0; k < dim; k++) {
+				std::cout << v[i][j][k] << "  ";
+      }
+			std::cout << "\n";
+    }
+		std::cout << "\n";
+  }
+
+  std::cout << "\nDvv:\n";
+  for(int j = 0; j < np; j++) {
+    for(int k = 0; k < np; k++) {
+      std::cout << deriv.Dvv[j][k] << "  ";
+    }
+		std::cout << "\n";
+  }
+
+  std::cout << "\nmetdet:\n";
+  for(int j = 0; j < np; j++) {
+    for(int k = 0; k < np; k++) {
+      std::cout << elem.metdet[j][k] << "  ";
+    }
+		std::cout << "\n";
+  }
+
+  std::cout << "\nDinv:\n";
+  for(int j = 0; j < np; j++) {
+    for(int k = 0; k < np; k++) {
+      for(int l = 0; l < dim; l++) {
+				for(int m = 0; m < dim; m++) {
+					std::cout << elem.Dinv[j][k][l][m] << "     ";
+				}
+				std::cout << "\n";
+      }
+			std::cout << "\n";
+    }
+		std::cout << "\n";
+  }
+  #endif
   /* Computes the spherical divergence of v based on the
    * provided metric terms in elem and deriv
    * Returns the divergence in div
