@@ -7,7 +7,7 @@
 #include "divergence.hpp"
 
 template <int np, typename real>
-void readVelocity(real v[np][np][2], std::istream *input) {
+void readVelocity(real_vector<np, real> &v, std::istream *input) {
   for(int i = 0; i < 2; i++) {
     for(int j = 0; j < np; j++) {
       for(int k = 0; k < np; k++) {
@@ -48,7 +48,7 @@ void readDerivative(derivative<np, real> &deriv,
 }
 
 template <int np, typename real>
-void readDivergence(real divergence[np][np],
+void readDivergence(real_scalar<np, real> &divergence,
                     std::istream *input) {
   for(int i = 0; i < np; i++) {
     for(int j = 0; j < np; j++) {
@@ -60,15 +60,15 @@ void readDivergence(real divergence[np][np],
 constexpr const int DIMS = 2;
 
 template <int np, typename real>
-void compareDivergences(const real v[np][np][DIMS],
+void compareDivergences(const real_vector<np, real> &v,
                         const element<np, real> &elem,
                         const derivative<np, real> &deriv,
-                        const real divergence_e[np][np],
+                        const real_scalar<np, real> &divergence_e,
                         const int numtests) {
   Timer::Timer time_c;
   /* Initial run to prevent cache timing from affecting us
    */
-  real divergence_c[np][np];
+  real_scalar<np, real> divergence_c;
   for(int i = 0; i < numtests; i++) {
     divergence_sphere<np, real>(v, deriv, elem,
                                 divergence_c);
@@ -82,7 +82,7 @@ void compareDivergences(const real v[np][np][DIMS],
   time_c.stopTimer();
 
   Timer::Timer time_f;
-  real divergence_f[np][np];
+  real_scalar<np, real> divergence_f;
   for(int i = 0; i < numtests; i++) {
     divergence_sphere_fortran(v, deriv, elem, divergence_f);
   }
@@ -109,10 +109,10 @@ void compareDivergences(const real v[np][np][DIMS],
 int main(int argc, char **argv) {
   using real = double;
   constexpr const int NP = 4;
-  real v[NP][NP][DIMS];
+  real_vector<NP, real> v;
   element<NP, real> elem;
   derivative<NP, real> deriv;
-  real divergence_e[NP][NP];
+  real_scalar<NP, real> divergence_e;
   {
     std::istream *input;
     if(argc > 1) {
@@ -120,10 +120,10 @@ int main(int argc, char **argv) {
     } else {
       input = &std::cin;
     }
-    readVelocity(v, input);
+    readVelocity<NP, real>(v, input);
     readElement(elem, input);
     readDerivative(deriv, input);
-    readDivergence(divergence_e, input);
+    readDivergence<NP, real>(divergence_e, input);
     if(argc > 1) {
       delete input;
     }
@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
   constexpr const int defNumTests = 1e5;
   const int numtests =
       (argc > 2) ? std::stoi(argv[2]) : defNumTests;
-  compareDivergences(v, elem, deriv, divergence_e,
-                     numtests);
+  compareDivergences<NP, real>(v, elem, deriv, divergence_e,
+															 numtests);
   return 0;
 }

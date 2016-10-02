@@ -8,6 +8,14 @@
 #define ALIGN(vardec) __declspec(align) vardec
 #define ALIGNTO(vardec, boundary) \
   __declspec(align(boundary)) vardec
+#define RESTRICT
+#elif defined(__clang__)
+#define NOVECDEP _Pragma("GCC ivdep")
+#define ALWAYSVECTORIZE _Pragma("GCC vector always")
+#define ALIGN(vardec) __attribute__((aligned)) vardec
+#define ALIGNTO(vardec, boundary) \
+  __attribute__((aligned(boundary))) vardec
+#define RESTRICT
 #elif defined(__GNUG__)
 #if(__GNUG__ == 4 && __GNUC_MINOR__ >= 9) || __GNUG__ > 4
 #define NOVECDEP _Pragma("GCC ivdep")
@@ -22,20 +30,28 @@
 #define ALIGN(vardec) __attribute__((aligned)) vardec
 #define ALIGNTO(vardec, boundary) \
   __attribute__((aligned(boundary))) vardec
+#define RESTRICT restrict
+#else
+#define RESTRICT
 #endif
+
+#include <array>
 
 constexpr const int dim = 2;
 
 template <int np, typename real>
-using real_vector = real[np][np][dim];
+using real_matrix = std::array<std::array<std::array<std::array<real, dim>, dim>, np>, np>;
 
 template <int np, typename real>
-using real_scalar = real[np][np];
+using real_vector = std::array<std::array<std::array<real, dim>, np>, np>;
+
+template <int np, typename real>
+using real_scalar = std::array<std::array<real, np>, np>;
 
 template <int np, typename real>
 struct element {
   real_scalar<np, real> metdet;
-  real Dinv[np][np][2][2];
+  real_matrix<np, real> Dinv;
   real_scalar<np, real> rmetdet;
 };
 
@@ -47,18 +63,18 @@ struct derivative {
 extern "C" {
 using real = double;
 void divergence_sphere_fortran(
-    const restrict real_vector<4, real>,
-    const derivative<4, real> &restrict,
-    const element<4, real> &restrict,
-    restrict real_scalar<4, real>);
+    const RESTRICT real_vector<4, real> &,
+    const derivative<4, real> &RESTRICT,
+    const element<4, real> &RESTRICT,
+    RESTRICT real_scalar<4, real> &);
 }
 
 template <int np, typename real>
 __attribute__((noinline)) void divergence_sphere(
-    const restrict real_vector<np, real> v,
-    const derivative<np, real> &restrict deriv,
-    const element<np, real> &restrict elem,
-    restrict real_scalar<np, real> div) {
+    const RESTRICT real_vector<np, real> &v,
+    const derivative<np, real> &RESTRICT deriv,
+    const element<np, real> &RESTRICT elem,
+    RESTRICT real_scalar<np, real> &div) {
   /* Computes the spherical divergence of v based on the
    * provided metric terms in elem and deriv
    * Returns the divergence in div
@@ -66,7 +82,7 @@ __attribute__((noinline)) void divergence_sphere(
   using rs = real_scalar<np, real>;
   using rv = real_vector<np, real>;
   /* Convert to contra variant form and multiply by g */
-  ALIGNTO(restrict rv gv, 16);
+  ALIGNTO(RESTRICT rv gv, 16);
   #if 1
   for(int j = 0; j < np; j++) {
     for(int i = 0; i < np; i++) {
@@ -79,7 +95,7 @@ __attribute__((noinline)) void divergence_sphere(
   }
   #endif
   /* Compute d/dx and d/dy */
-  ALIGNTO(restrict rs vvtemp, 16);
+  ALIGNTO(RESTRICT rs vvtemp, 16);
   #if 1
   for(int l = 0; l < np; l++) {
     for(int j = 0; j < np; j++) {
