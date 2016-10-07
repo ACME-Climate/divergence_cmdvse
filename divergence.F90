@@ -18,10 +18,11 @@ module divergence
   implicit none
 
   integer, parameter, public :: np = 4
+  integer, parameter, public :: dim = 2
 
   type, bind(c), public :: element_t
      real (kind=c_double) :: metdet(np,np)
-     real (kind=c_double) :: Dinv(2,2,np,np)
+     real (kind=c_double) :: Dinv(dim,dim,np,np)
      real (kind=c_double) :: rmetdet(np,np)
   end type element_t
 
@@ -42,14 +43,16 @@ module divergence
   end interface
 
 contains
-  subroutine divergence_sphere_fortran(v,deriv,elem,div) bind(c)
+  subroutine divergence_sphere_fortran(v,Dvv,metdet,Dinv,rmetdet,div) bind(c)
     !
     !   input:  v = velocity in lat-lon coordinates
     !   ouput:  div(v)  spherical divergence of v
     !
-    real(kind=c_double), intent(in) :: v(2,np,np)  ! in lat-lon coordinates
-    type (derivative_t), intent(in) :: deriv
-    type (element_t), intent(in) :: elem
+    real(kind=c_double), intent(in) :: v(dim,np,np)  ! in lat-lon coordinates
+    real(kind=c_double), intent(in) :: Dvv(np,np)
+    real(kind=c_double), intent(in) :: metdet(np,np)
+    real(kind=c_double), intent(in) :: Dinv(dim,dim,np,np)
+    real(kind=c_double), intent(in) :: rmetdet(np,np)
     real(kind=c_double), intent(out) :: div(np,np)
 
     ! Local
@@ -65,7 +68,7 @@ contains
     do j=1,np
        do i=1,np
           do l=1,2
-             gv(i,j,l)=elem%metdet(i,j)*(elem%Dinv(1,l,i,j)*v(1,i,j) + elem%Dinv(2,l,i,j)*v(2,i,j))
+             gv(i,j,l)=metdet(i,j)*(Dinv(1,l,i,j)*v(1,i,j) + Dinv(2,l,i,j)*v(2,i,j))
           enddo
        enddo
     enddo
@@ -78,8 +81,8 @@ contains
           dvdy00=0.0d0
           !DIR$ UNROLL(NP)
           do i=1,np
-             dudx00 = dudx00 + deriv%Dvv(i,l  )*gv(i,j  ,1)
-             dvdy00 = dvdy00 + deriv%Dvv(i,l  )*gv(j  ,i,2)
+             dudx00 = dudx00 + Dvv(i,l  )*gv(i,j  ,1)
+             dvdy00 = dvdy00 + Dvv(i,l  )*gv(j  ,i,2)
           end do
           div(l  ,j  ) = dudx00
           vvtemp(j  ,l  ) = dvdy00
@@ -87,7 +90,7 @@ contains
     end do
 #endif
 #if 1
-    div(:,:)=(div(:,:)+vvtemp(:,:))*(elem%rmetdet(:,:)*rrearth)
+    div(:,:)=(div(:,:)+vvtemp(:,:))*(rmetdet(:,:)*rrearth)
 #endif
   end subroutine divergence_sphere_fortran
 

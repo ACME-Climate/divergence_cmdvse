@@ -65,32 +65,32 @@ void compareDivergences(const real v[np][np][DIMS],
                         const derivative<np, real> &deriv,
                         const real divergence_e[np][np],
                         const int numtests) {
+  Timer::Timer time_f;
+  real divergence_f[np][np];
+  for(int i = 0; i < numtests; i++) {
+    divergence_sphere_fortran(v, deriv.Dvv, elem.metdet, elem.Dinv, elem.rmetdet, divergence_f);
+  }
+  time_f.startTimer();
+  for(int i = 0; i < numtests; i++) {
+    divergence_sphere_fortran(v, deriv.Dvv, elem.metdet, elem.Dinv, elem.rmetdet, divergence_f);
+  }
+  time_f.stopTimer();
+
   Timer::Timer time_c;
   /* Initial run to prevent cache timing from affecting us
    */
   real divergence_c[np][np];
   for(int i = 0; i < numtests; i++) {
-    divergence_sphere<np, real>(v, deriv, elem,
+    divergence_sphere<np, real>(v, deriv.Dvv, elem.metdet, elem.Dinv, elem.rmetdet,
                                 divergence_c);
   }
 
   time_c.startTimer();
   for(int i = 0; i < numtests; i++) {
-    divergence_sphere<np, real>(v, deriv, elem,
+    divergence_sphere<np, real>(v, deriv.Dvv, elem.metdet, elem.Dinv, elem.rmetdet,
                                 divergence_c);
   }
   time_c.stopTimer();
-
-  Timer::Timer time_f;
-  real divergence_f[np][np];
-  for(int i = 0; i < numtests; i++) {
-    divergence_sphere_fortran(v, deriv, elem, divergence_f);
-  }
-  time_f.startTimer();
-  for(int i = 0; i < numtests; i++) {
-    divergence_sphere_fortran(v, deriv, elem, divergence_f);
-  }
-  time_f.stopTimer();
   std::cout << "Divergence Errors\n";
   for(int i = 0; i < np; i++) {
     for(int j = 0; j < np; j++) {
